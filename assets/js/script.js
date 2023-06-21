@@ -9,28 +9,20 @@ var rowCards = $("#demo-carousel");
 var lastSearchButtonEl = $("#last-search-button");
 var searchButtonEl = $("#search-button");
 var clearButtonEl = $("#clear-button");
-var YOUTUBE_API_KEY = "AIzaSyBwFTI7Sa51Mo1ATzAgIH1hPXYIED0YUzg";
 var imdbApiURL = "https://imdb-api.com/en/API/";
-var carouselContainer = $(".carousel"); // Assuming you have a Slick carousel with class 'carousel'
+var carouselContainer = $(".carousel"); 
 var loadingIconEl = $("#loading-icon");
 var movieInputEl = $("#movie");
 var buttonList = $("#buttonsList");
-var submit = document.getElementById("search-button");
+var YOUTUBE_API_KEY = "AIzaSyBYN8k-tLB6UeGCFtP3Lh08rIZM8x5pSWc";
+// var YOUTUBE_API_KEY = "AIzaSyBwFTI7Sa51Mo1ATzAgIH1hPXYIED0YUzg"
+var submit = document.getElementById('search-button');
 var last_Search = JSON.parse(localStorage.getItem("Last Search"));
-// var movieArray = [];
-var storedData = localStorage.getItem("Movie");
 
-var movieArray = []; // Set a default value
-
-if (storedData !== null) {
-  movieArray = JSON.parse(storedData);
-}
 
 $(document).ready(function () {
   // Calling clear results on clear-button click
   $("#clear-button").on("click",clearResults);
-  // Displaying last few searches
-  lastSearch();
 
   $("#last-search-button").on("click", function (event) {
     event.preventDefault();
@@ -57,12 +49,14 @@ $(document).ready(function () {
       awardDescView.empty();
       posterCardView.empty();
       trailerView.empty();
+      // search user input
       var userInput = movieInputEl.val().trim().toLowerCase();
       movieTitleSearch(userInput);
       moviePoster(userInput);
       movieCastSearch(userInput);
       movieAwards(userInput);
       movieRatings(userInput);
+      searchVideos(userInput);
       // Refresh the carousel
       carouselContainer.slick("refresh");
       movieInputEl.val("");
@@ -76,9 +70,6 @@ $(document).ready(function () {
       url: movieURL,
       method: "GET",
     }).then(function (res) {
-      // console.log(res);
-      //   console.log(res.results[0]);
-      // console.log("id " + res.results[0].id);
       var id = res.results[0].id;
       var expression = res.results[0].expression;
       // Save movie id and title in local storage
@@ -87,50 +78,38 @@ $(document).ready(function () {
         MovieID: id,
       };
       localStorage.setItem("Last Search", JSON.stringify(searchInfo));
-      // Sending Movie title to storeData to avoid dupliocates
-      storeData(res.expression);
-    }).catch(function () {
-      console.log("Error searching for the movie.");
+
     });
   }
 });
-// This function makes api call to IMDB database to get movie id and then one more AJAX call for casts
+
+// This function makes api call to IMDB database to get movie id and then one more AJAX call for cast details
 function movieCastSearch(userInput) {
-  castsView.empty();
-  let movieURL = imdbApiURL + "SearchMovie/" + API_KEY + "/" + userInput;
-  
-  // This is the API call to retrieve the movie ID from IMDB
+  let movieURL =
+    "https://imdb-api.com/en/API/SearchMovie/" + API_KEY + "/" + userInput;
+  // This is the API call from imdb Movie ID
   $.ajax({
     url: movieURL,
     method: "GET",
   }).then(function (res) {
     var movieId = res.results[0].id;
-    let movieCastsURL = imdbApiURL + "FullCast/" + API_KEY + "/" + movieId;
-    
-    // This is the API call to retrieve the cast details for the movie
+    $(".castsCard").empty();
+    let movieCastsURL =
+      "https://imdb-api.com/en/API/FullCast/" + API_KEY + "/" + movieId;
+    // This is the API call to imdb cast
     $.ajax({
       url: movieCastsURL,
       method: "GET",
-      success: function (res) {
-        for (var i = 0; i < 10; i++) {
-          var listItem = document.createElement("li");
-          var details = document.createTextNode(res.actors[i].name);
-          listItem.append(details);
-          castsView.append(listItem);
-          lastSearch();
-        }
-      },
-      error: function () {
-        console.log("Error fetching movie casts.");
-        loadingIconEl.hide();
-      },
+    }).then(function (res) {
+      for (var i = 0; i < 10; i++) {
+        var listItem = document.createElement("li");
+        var details = document.createTextNode(res.actors[i].name);
+        listItem.append(details);
+        castsView.append(listItem);
+      }
     });
-  }).catch(function () {
-    console.log("Error searching for the movie.");
-    loadingIconEl.hide();
   });
 }
-
 
 // This function makes api call to IMDB database to get movie id and then one more AJAX call for movie posters and create image caraousel
 function moviePoster(userInput) {
@@ -156,14 +135,9 @@ function moviePoster(userInput) {
         loadingIconEl.css("background-color", "transparent").show();
       },
       success: function (data) {
-        // console.log(data);
         var posters = data.posters;
-        // console.log(posters);
-        // var carouselContainer = $(".carousel");
 
         carouselContainer.empty(); // Clear existing carousel content
-        // var cardHeight = 15; 
-        // $(".carousel").css("height", cardHeight + "%");
 
         // Unslick the carousel if it's already initialized
         if (carouselContainer.hasClass("slick-initialized")) {
@@ -186,7 +160,7 @@ function moviePoster(userInput) {
             autoplaySpeed: 6000, // Set a higher value to increase the delay
             dots: true,
             infinite: true,
-            speed: 500, // Transition speed between slides (in milliseconds)
+            speed: 1000, // Transition speed between slides (in milliseconds)
             slidesToShow: 1,
             slidesToScroll: 1,
           });
@@ -221,96 +195,83 @@ function moviePoster(userInput) {
 function movieAwards(userInput) {
   awardView.empty();
   let movieURL = imdbApiURL + "SearchMovie/" + API_KEY + "/" + userInput;
-
-  // This is the API call to retrieve the movie ID from IMDB
+  // This is the API call from imdb Movie ID
   $.ajax({
     url: movieURL,
     method: "GET",
   }).then(function (res) {
     var movieId = res.results[0].id;
-    let movieAwardsURL = imdbApiURL + "Awards/" + API_KEY + "/" + movieId;
-    
-    // This is the API call to retrieve the movie awards
+    let movieCastsURL = imdbApiURL + "Awards/" + API_KEY + "/" + movieId;
+    // This is the API call to imdb cast
     $.ajax({
-      url: movieAwardsURL,
+      url: movieCastsURL,
       method: "GET",
-      success: function (res) {
-        awardDescView.text("Awards: " + res.description);
-        if (res.items) {
-          for (var i = 0; i < 5; i++) {
-            var listItem = document.createElement("li");
-            var details = document.createTextNode(res.items[i].eventTitle);
-            listItem.appendChild(details);
-            awardView.append(listItem);
-          }
+    }).then(function (res) {
+      awardDescView.text("Awards: " + res.description);
+      if (res.items) {
+        for (var i = 0; i < 5; i++) {
+          var listItem = document.createElement("li");
+          var details = document.createTextNode(res.items[i].eventTitle);
+          listItem.appendChild(details);
+          awardView.append(listItem);
         }
-      },
-      error: function () {
-        console.log("Error fetching movie awards.");
-      },
+      }
     });
-  }).catch(function () {
-    console.log("Error searching for the movie.");
   });
 }
-
 
 // This function makes api call to IMDB database to get movie id and then one more AJAX call for Ratings
 function movieRatings(userInput) {
   awardView.empty();
   let movieURL = imdbApiURL + "SearchMovie/" + API_KEY + "/" + userInput;
-
-  // This is the API call to retrieve the movie ID from IMDB
+  // This is the API call from imdb Movie ID
   $.ajax({
     url: movieURL,
     method: "GET",
   }).then(function (res) {
+    // console.log(res);
     var movieId = res.results[0].id;
     let movieRatingsURL = imdbApiURL + "Ratings/" + API_KEY + "/" + movieId;
-    
-    // This is the API call to retrieve the movie ratings
+    // This is the API call to imdb cast
     $.ajax({
       url: movieRatingsURL,
       method: "GET",
-      success: function (res) {
-        if (res.imDb) {
-          movieRatingsView.text("Ratings: " + res.imDb);
-        }
-      },
-      error: function () {
-        console.log("Error fetching movie ratings.");
-      },
+    }).then(function (res) {
+      // Display movie ratings if true
+      if (res.imDb) {
+        movieRatingsView.text("Ratings: " + res.imDb);
+      }
     });
-  }).catch(function () {
-    console.log("Error searching for the movie.");
   });
 }
-
 
 // This function makes api call to google api to get movie videos
 function searchVideos(movieTitle) {
   var $carousel = $(".card-content-trailer");
-
+  // Unslick the carousel if it's already initialized
+  if ($carousel.hasClass("slick-initialized")) {
+    $carousel.slick("unslick");
+  }
+  // Clear the carousel contents
   $carousel.empty();
-
+  // Pulls data from the user input field
   var searchQuery = $("#movie").val();
+  //Inserts a key word to the searchQuery to make consistent results
   var keyword = "movie";
-  var requestUrl;
-
+  
   if (searchQuery) {
     requestUrl = `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&part=snippet&maxResults=20&q=${searchQuery}+${keyword}`;
   } else {
     requestUrl = `https://www.googleapis.com/youtube/v3/search?key=${YOUTUBE_API_KEY}&part=snippet&maxResults=20&q=${movieTitle}+${keyword}`;
   }
 
+  // JQ fetch of the api
   $.ajax({
     url: requestUrl,
     method: "GET",
   }).then(function (data) {
-    var videoItems = data.items.slice(0, 4);
-
-    // Create a new carousel clone
-    var $newCarousel = $carousel.clone();
+    // Limit youtube API pull by 10 searches to be appended as an iframe
+    var videoItems = data.items.slice(0, 10);
 
     videoItems.forEach(function (video) {
       var videoId = video.id.videoId;
@@ -322,22 +283,22 @@ function searchVideos(movieTitle) {
         .attr("frameborder", "0")
         .attr("allowfullscreen", true);
       var listItem = $("<a>").append(iframe);
-      $newCarousel.append(listItem);
+      $carousel.append(listItem);
     });
 
-    // Replace the original carousel with the new clone
-    $carousel.replaceWith($newCarousel);
 
-    // Initialize the carousel on the new clone
-    $newCarousel.slick({
+    // Initializes the carousel to the iframes
+    $carousel.slick({
       slidesToShow: 3,
       slidesToScroll: 1,
       autoplay: true,
-      autoplaySpeed: 3000,
+      autoplaySpeed: 6000,
       dots: true,
+      infinite: true,
     });
   });
 
+  //  Adds functionality to clear search button
   $("#clear-button").on("click", function () {
     $('.castsCard').empty();
     $('.awardsCard').empty();
@@ -346,60 +307,10 @@ function searchVideos(movieTitle) {
     location.reload();
   });
 }
-
-
-function lastSearch() {
-  buttonList.empty();
-
-  // Add the heading element
-  var heading = $("<h4>").text("Last few searches:").css({
-    "background-color": "transparent",
-    color: "white",
-    "margin-bottom": "10px", // Add margin-bottom for new line
-  });
-  buttonList.prepend(heading);
-
-  for (var i = 0; i < Math.min(10, movieArray.length); i++) {
-    var newButton = $("<button>")
-      .attr("type", "button")
-      .addClass("savedBtn btn btn-secondary btn-lg")
-      .text(movieArray[i])
-      .attr("data-name", movieArray[i])
-      .css({
-        "background-color": "#ff0800",
-        "margin-right": "15px", // Adjust the margin value as needed
-        "margin-bottom": "10px",
-      });
-
-    buttonList.append(newButton);
-  }
-  $(".savedBtn").on("click", function (event) {
-    event.preventDefault();
-    var userInput = $(this).data("name");
-    movieCastSearch(userInput);
-    moviePoster(userInput);
-    movieAwards(userInput);
-    movieRatings(userInput);
-    searchVideos(userInput);
-  });
-
-}
-
-function storeData(movieInput) {
-  var foundMovie = false;
-
-  if (movieArray != null) {
-    $(movieArray).each(function (x) {
-      if (movieArray[x] === movieInput) {
-        foundMovie = true;
-      }
-    });
-  }
-
-  if (foundMovie === false) {
-    movieArray.push(movieInput);
-  }
-  localStorage.setItem("Movie", JSON.stringify(movieArray));
+// Clears carousel before each search
+function clearCarousel() {
+  var $carousel = $(".card-content-trailer");
+  $carousel.empty();
 }
 
 function clearResults() {
@@ -408,7 +319,6 @@ function clearResults() {
   // Clear the results from all card content
   castsView.empty();
   awardView.empty();
-  ratingsView.empty();
   movieRatingsView.empty();
   awardDescView.empty();
   posterCardView.empty();
